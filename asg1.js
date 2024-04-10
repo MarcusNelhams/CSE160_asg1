@@ -2,10 +2,10 @@
 // Vertex shader program
 var VSHADER_SOURCE = `
   attribute vec4 a_Position;
-  uniform float u_size
+  uniform float u_Size;
   void main() {
     gl_Position = a_Position;
-    gl_PointSize = u_size;
+    gl_PointSize = u_Size;
   }`
 
 // Fragment shader program
@@ -66,9 +66,10 @@ function connectVarsToGLSL() {
   }
 }
 
-var selected_colors = [1.0, 1.0, 1.0, 1.0];
-var g_points = [];
-var g_colors = [];
+// global buffers for point attributes
+let g_points = [];
+let g_colors = [];
+let g_sizes  = [];
 
 // Extract mouse coords and return WebGL coords
 
@@ -83,19 +84,20 @@ function convertCoordinatesEventToGL(ev) {
   return [x, y];
 }
 
-// Registers Mouse Click 
+// registers mouse click and pushes inputed values to buffers
 function handleOnClick(ev) {
   let [x, y] = convertCoordinatesEventToGL(ev);
 
   g_points.push([x, y]);
-  g_colors.push(selected_colors.slice());
+  g_colors.push(g_selected_colors.slice());
+  g_sizes.push(g_selected_size);
 
   // console.log(selected_colors.slice());
   renderAllShapes();
   return;
 }
 
-// Render shapes on canvas
+// Render all shapes defined by buffers onto canvas
 function renderAllShapes() {
   // Clear Canvas
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -104,28 +106,35 @@ function renderAllShapes() {
   for (var i = 0; i < len; i++) {
     var xy = g_points[i];
     var rgba = g_colors[i];
+    var size = g_sizes[i];
 
-    // Pass vertex position to attribute variable
+    // Pass vertex position to shader
     gl.vertexAttrib3f(a_Position, xy[0], xy[1], 0.0);
-    // Pass vertex color to attribute variable
+    // Pass vertex color to shader
     gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], 1.0);
+    // Pass shape size to shader
+    gl.uniform1f(u_Size, size)
     // Draw
     gl.drawArrays(gl.POINTS, 0, 1);
   }
   return;
 }
 
+// global UI elements
+let g_selected_colors = [1.0, 1.0, 1.0, 1.0];
+let g_selected_size = 5;
+
 function addActionsForHtmlUI() {
   // clear canvas
-  // document.getElementById('clear').onclicke = function 
+  // document.getElementById('clear').onclick = function 
 
   // color sliders
-  document.getElementById('redSlide').addEventListener('mouseup', function() { selected_colors[0] = this.value / 100; });
-  document.getElementById('greenSlide').addEventListener('mouseup', function() { selected_colors[1] = this.value / 100; });
-  document.getElementById('blueSlide').addEventListener('mouseup', function() { selected_colors[2] = this.value / 100; });
+  document.getElementById('redSlide').addEventListener('mouseup', function() { g_selected_colors[0] = this.value / 100; });
+  document.getElementById('greenSlide').addEventListener('mouseup', function() { g_selected_colors[1] = this.value / 100; });
+  document.getElementById('blueSlide').addEventListener('mouseup', function() { g_selected_colors[2] = this.value / 100; });
 
   // shape size slider
-  document.getElementById('sizeSlide').addEventListener('mouseup', function() {})
+  document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selected_size = this.value; });
 }
 
 function main() {
