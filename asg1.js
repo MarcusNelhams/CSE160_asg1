@@ -29,11 +29,13 @@ function setupWebGL() {
   canvas = document.getElementById('webgl');
 
   // Get the rendering context for WebGL
-  gl = getWebGLContext(canvas);
+  // gl = getWebGLContext(canvas);
+  gl = canvas.getContext("webgl", {preserveDrawingBuffer:true});
   if (!gl) {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
+  return;
 }
 
 // Connects js vars to GLSL vars in shaders
@@ -64,15 +66,13 @@ function connectVarsToGLSL() {
     console.log('Failed to get the storage location of u_Size');
     return;
   }
+  return;
 }
 
-// global buffers for point attributes
-let g_points = [];
-let g_colors = [];
-let g_sizes  = [];
+// global buffer for Point objects
+let g_shapesList = [];
 
 // Extract mouse coords and return WebGL coords
-
 function convertCoordinatesEventToGL(ev) {
   var x = ev.clientX; // Get mouse x position
   var y = ev.clientY; // Get mouse y position
@@ -84,49 +84,18 @@ function convertCoordinatesEventToGL(ev) {
   return [x, y];
 }
 
-// registers mouse click and pushes inputed values to buffers
-function handleOnClick(ev) {
-  let [x, y] = convertCoordinatesEventToGL(ev);
-
-  g_points.push([x, y]);
-  g_colors.push(g_selected_colors.slice());
-  g_sizes.push(g_selected_size);
-
-  // console.log(selected_colors.slice());
-  renderAllShapes();
-  return;
-}
-
-// Render all shapes defined by buffers onto canvas
-function renderAllShapes() {
-  // Clear Canvas
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
-  var len = g_points.length;
-  for (var i = 0; i < len; i++) {
-    var xy = g_points[i];
-    var rgba = g_colors[i];
-    var size = g_sizes[i];
-
-    // Pass vertex position to shader
-    gl.vertexAttrib3f(a_Position, xy[0], xy[1], 0.0);
-    // Pass vertex color to shader
-    gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], 1.0);
-    // Pass shape size to shader
-    gl.uniform1f(u_Size, size)
-    // Draw
-    gl.drawArrays(gl.POINTS, 0, 1);
-  }
-  return;
-}
-
 // global UI elements
 let g_selected_colors = [1.0, 1.0, 1.0, 1.0];
 let g_selected_size = 5;
+let g_selected_shape = 'square';
 
 function addActionsForHtmlUI() {
-  // clear canvas
-  // document.getElementById('clear').onclick = function 
+  // clear canvas button
+  document.getElementById('clear').onclick = function() { g_shapesList = []; renderAllShapes(); };
+
+  // choose shape buttons
+  document.getElementById('squareButton').onclick = function() { g_selected_shape = this.value; };
+  document.getElementById('triangleButton').onclick = function() { g_selected_shape = this.value; };
 
   // color sliders
   document.getElementById('redSlide').addEventListener('mouseup', function() { g_selected_colors[0] = this.value / 100; });
@@ -135,6 +104,53 @@ function addActionsForHtmlUI() {
 
   // shape size slider
   document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selected_size = this.value; });
+  return;
+}
+
+
+// Render all shapes defined by buffers onto canvas
+function renderAllShapes() {
+  // Clear Canvas
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // draw each shape in shapesList
+  var len = g_shapesList.length;
+  for (var i = 0; i < len; i++) {
+    g_shapesList[i].render();
+  }
+  return;
+}
+
+// registers mouse click and pushes inputed values to buffers
+function handleOnClick(ev) {
+  // if mouse button is not down, return
+  if (ev.buttons != 1) {
+    return;
+  }
+
+  // get webGL coords from click
+  let [x, y] = convertCoordinatesEventToGL(ev);
+
+  // create and define a new point
+  if (g_selected_shape === 'square') {
+    let point = new Point();
+    point.position = [x, y];
+    point.color = g_selected_colors.slice();
+    point.size = g_selected_size;
+    g_shapesList.push(point);
+  }
+
+  if (g_selected_shape === 'triangle') {
+    let triangle = new Triangle();
+    triangle.position = [x, y];
+    triangle.color = g_selected_colors.slice();
+    triangle.size = g_selected_size;
+    g_shapesList.push(triangle);
+  }
+
+  // console.log(g_selected_colors.slice());
+  renderAllShapes();
+  return;
 }
 
 function main() {
@@ -150,4 +166,5 @@ function main() {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   canvas.onmousedown = handleOnClick;
+  canvas.onmousemove = handleOnClick;
 }
