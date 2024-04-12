@@ -38,12 +38,12 @@ function drawTriangle(vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
     // Write data into the buffer object
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
 
     // Assign the buffer object to a_Position variable
     gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
 
-    // Enable the assignment ot a_Position variable
+    // Enable the assignment to a_Position variable
     gl.enableVertexAttribArray(a_Position);
 
     gl.drawArrays(gl.TRIANGLES, 0, n);

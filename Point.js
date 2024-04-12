@@ -12,6 +12,8 @@ class Point {
     var rgba = this.color;
     var size = this.size;
 
+    // Quit using a buffer to send the attribute
+    gl.disableVertexAttribArray(a_Position);
     // Pass vertex position to shader
     gl.vertexAttrib3f(a_Position, xy[0], xy[1], 0.0);
     // Pass vertex color to shader
