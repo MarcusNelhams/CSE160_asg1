@@ -96,6 +96,7 @@ function addActionsForHtmlUI() {
   // choose shape buttons
   document.getElementById('squareButton').onclick = function() { g_selected_shape = this.value; };
   document.getElementById('triangleButton').onclick = function() { g_selected_shape = this.value; };
+  document.getElementById('circleButton').onclick = function() { g_selected_shape = this.value; };
 
   // color sliders
   document.getElementById('redSlide').addEventListener('mouseup', function() { g_selected_colors[0] = this.value / 100; });
@@ -140,12 +141,21 @@ function handleOnClick(ev) {
     g_shapesList.push(point);
   }
 
+  // create and define a new triangle
   if (g_selected_shape === 'triangle') {
     let triangle = new Triangle();
     triangle.position = [x, y];
     triangle.color = g_selected_colors.slice();
     triangle.size = g_selected_size;
     g_shapesList.push(triangle);
+  }
+
+  if (g_selected_shape === 'circle') {
+    let circle = new Circle();
+    circle.position = [x, y];
+    circle.color = g_selected_colors.slice();
+    circle.size = g_selected_size;
+    g_shapesList.push(circle);
   }
 
   // console.log(g_selected_colors.slice());
