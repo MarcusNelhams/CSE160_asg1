@@ -88,10 +88,12 @@ function convertCoordinatesEventToGL(ev) {
 let g_selected_colors = [1.0, 1.0, 1.0, 1.0];
 let g_selected_size = 5;
 let g_selected_shape = 'square';
+let g_selected_segments = 10;
+let g_selected_sketchSpeed = 1;
 
 function addActionsForHtmlUI() {
   // clear canvas button
-  document.getElementById('clear').onclick = function() { g_shapesList = []; renderAllShapes(); };
+  document.getElementById('clear').onclick = function() { g_shapesList = []; picture = false; renderAllShapes(); last_xy = [0, 0]; };
 
   // choose shape buttons
   document.getElementById('squareButton').onclick = function() { g_selected_shape = this.value; };
@@ -105,14 +107,30 @@ function addActionsForHtmlUI() {
 
   // shape size slider
   document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selected_size = this.value; });
+  
+  // circle segment count
+  document.getElementById('segmentSlide').addEventListener('mouseup', function() { g_selected_segments = this.value; });
+  
+  // draw picture
+  document.getElementById('pictureButton').onclick = DrawPicture;
+
+  // etch-a-sketch speed
+  document.getElementById('sketchSpeed').addEventListener('mouseup', function() { g_selected_sketchSpeed = this.value; });
   return;
 }
 
+
+// keep track if pictuure drawn
+let picture = false;
 
 // Render all shapes defined by buffers onto canvas
 function renderAllShapes() {
   // Clear Canvas
   gl.clear(gl.COLOR_BUFFER_BIT);
+
+  if (picture) {
+    DrawPicture();
+  }
 
   // draw each shape in shapesList
   var len = g_shapesList.length;
@@ -122,15 +140,25 @@ function renderAllShapes() {
   return;
 }
 
+// save previous coords for mouseless draw
+let last_xy = [0, 0];
+
 // registers mouse click and pushes inputed values to buffers
 function handleOnClick(ev) {
   // if mouse button is not down, return
-  if (ev.buttons != 1) {
+  if (ev.buttons != 1 && !(keysDown[16])) {
     return;
   }
+  console.log("here");
 
+  let [x, y] = [0, 0];
   // get webGL coords from click
-  let [x, y] = convertCoordinatesEventToGL(ev);
+  if (ev.buttons == 1) {
+    [x, y] = convertCoordinatesEventToGL(ev);
+    last_xy = [x, y];
+  } else {
+    [x, y] = last_xy;
+  }
 
   // create and define a new point
   if (g_selected_shape === 'square') {
@@ -150,17 +178,157 @@ function handleOnClick(ev) {
     g_shapesList.push(triangle);
   }
 
+  // create and define a new circle
   if (g_selected_shape === 'circle') {
     let circle = new Circle();
     circle.position = [x, y];
     circle.color = g_selected_colors.slice();
     circle.size = g_selected_size;
+    circle.segments = g_selected_segments;
     g_shapesList.push(circle);
   }
 
   // console.log(g_selected_colors.slice());
   renderAllShapes();
   return;
+}
+
+// keep track of currently down  keys
+let keysDown = {}
+
+// handles when a keyboard key is pressed
+function handleOnKeyDown(ev) {
+  // store keys pressed
+  keysDown[ev.keyCode] = true;
+
+  // delta
+  let d = g_selected_sketchSpeed/200.0;
+
+  // if spacebar down
+  if (keysDown[16]) {
+    if (keysDown[87]) {
+      // up
+      last_xy[1] += d;
+      handleOnClick(ev);
+    }
+    if (keysDown[83]) {
+      // down
+      last_xy[1] -= d;
+      handleOnClick(ev);
+    }
+    if (keysDown[65]) {
+      // left
+      last_xy[0] -= d;
+      handleOnClick(ev);
+    }
+    if (keysDown[68]) {
+      // right
+      last_xy[0] += d;
+      handleOnClick(ev);
+    }
+  }
+}
+
+// handles if a keyboard key is unpressed
+function handleOnKeyUp(ev) {
+  keysDown[ev.keyCode] = false;
+}
+
+// draws picture of dog
+function  DrawPicture() {
+  // clear screen
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // picture should be rendered
+  picture = true;
+
+  // delta for sizing
+  let d = 15/200.0;
+
+  // left ear
+  gl.uniform4f(u_FragColor, 1.0, 0.85, 0.85, 1.0);
+  drawTriangle([-4*d, 2*d, -5*d, 5*d, -7*d, 5*d]);
+  drawTriangle([-4*d, 2*d, -3*d, 3.5*d, -5*d, 5*d]);
+  gl.uniform4f(u_FragColor, 0.5, 0.3, 0, 1.0);
+  drawTriangle([-3*d, 3.5*d, -2*d, 5*d, -5*d, 5*d]);
+  gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
+  drawTriangle([-4*d, 2*d, -2*d, 2*d, -2*d, 5*d]);
+
+  // top of head
+  gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
+  drawTriangle([-2*d, 3*d, 3*d, 5*d, -2*d, 5*d]);
+  drawTriangle([-2*d, 3*d, 3*d, 3*d, 3*d, 5*d]);
+  drawTriangle([-1*d, 2*d, 2*d, 2*d, -1*d, 3*d]);
+  drawTriangle([2*d, 2*d, 2*d, 3*d, -1*d, 3*d]);
+
+  // left eye
+  gl.uniform4f(u_FragColor, 0.8, 0.8, 0.8, 1.0);
+  drawTriangle([-2*d, 2.5*d, -1.5*d, 3*d, -2*d, 3*d]);
+  drawTriangle([-2*d, 2*d, -1.5*d, 2*d, -2*d, 2.5*d]);
+  drawTriangle([-2*d, 2.5*d, -1.75*d, 2.25*d, -1.75*d, 2.75*d]);
+  drawTriangle([-1.75*d, 2.75*d, -1.25*d, 2.75*d, -1.5*d, 3*d]);
+  drawTriangle([-1*d, 2.5*d, -1*d, 3*d, -1.5*d, 3*d]);
+  drawTriangle([-1.25*d, 2.25*d, -1*d, 2.5*d, -1.25*d, 2.75*d]);
+  drawTriangle([-1.5*d, 2*d, -1*d, 2*d, -1*d, 2.5*d]);
+  drawTriangle([-1.5*d, 2*d, -1.25*d, 2.25*d, -1.75*d, 2.25*d]);
+
+  // right eye
+  gl.uniform4f(u_FragColor, 0.5, 0.3, 0, 1.0);
+  drawTriangle([2*d, 2.5*d, 2.5*d, 3*d, 2*d, 3*d]);
+  drawTriangle([2*d, 2*d, 2.5*d, 2*d, 2*d, 2.5*d]);
+  drawTriangle([2*d, 2.5*d, 2.25*d, 2.25*d, 2.25*d, 2.75*d]);
+  drawTriangle([2.25*d, 2.75*d, 2.75*d, 2.75*d, 2.5*d, 3*d]);
+  drawTriangle([3*d, 2.5*d, 3*d, 3*d, 2.5*d, 3*d]);
+  drawTriangle([2.75*d, 2.25*d, 3*d, 2.5*d, 2.75*d, 2.75*d]);
+  drawTriangle([2.5*d, 2*d, 3*d, 2*d, 3*d, 2.5*d]);
+  drawTriangle([2.5*d, 2*d, 3*d, 2.25*d, 2.25*d, 2.25*d]);
+
+  // right ear
+  gl.uniform4f(u_FragColor, 0.5, 0.3, 0, 1.0);
+  drawTriangle([7*d, 4*d, 8*d, 5*d, 7*d, 5*d]);
+  gl.uniform4f(u_FragColor, 1.0, 0.85, 0.85, 1.0);
+  drawTriangle([5*d, 2*d, 7*d, 4*d, 3.5*d, 4*d]);
+  drawTriangle([3.5*d, 4*d, 7*d, 5*d, 3*d, 5*d]);
+  drawTriangle([3.5*d, 4*d, 7*d, 4*d, 7*d, 5*d]);
+  gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
+  drawTriangle([3*d, 2*d, 5*d, 2*d, 3*d, 5*d]);
+
+  //left cheeck + under eye
+  gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
+  drawTriangle([-1*d, -4*d, -2*d, 0*d, -4*d, 2*d]);
+  drawTriangle([-2*d, 0*d, -2*d, 2*d, -4*d, 2*d]);
+  drawTriangle([-1*d, -4*d, -1*d, 0*d, -2*d, 0*d]);
+  drawTriangle([-1*d, -1*d, -1*d, 0*d, -2*d, 0*d]);
+  drawTriangle([-2*d, 0*d, 3*d, 2*d, -2*d, 2*d]);
+  drawTriangle([-2*d, 0*d, 3*d, 0*d, 3*d, 2*d]);
+
+  // right cheeck
+  drawTriangle([2*d, -4*d, 5*d, 2*d, 2*d, 2*d]);
+  drawTriangle([-2*d, 0*d, 3*d, 0*d, 3*d, 2*d]);
+
+  // nose
+  drawTriangle([-1*d, -1*d, 2*d, -1*d, -1*d, 0*d]);
+  drawTriangle([2*d, -1*d, 2*d, 0*d, -1*d, 0*d]);
+  gl.uniform4f(u_FragColor, 0.2, 0.05, 0.05, 1.0);
+  drawTriangle([-1*d, -3*d, 2*d, -3*d, -1*d, -1*d]);
+  drawTriangle([2*d, -3*d, 2*d, -1*d, -1*d, -1*d]);
+
+  // mouth
+  gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
+  drawTriangle([-1*d, -4*d, 0*d, -3*d, -1*d, -3*d]);
+  drawTriangle([-1*d, -4*d, 0*d, -4*d, 0*d, -3*d]);
+  drawTriangle([1*d, -4*d, 2*d, -3*d, 1*d, -3*d]);
+  drawTriangle([1*d, -4*d, 2*d, -4*d, 2*d, -3*d]);
+  drawTriangle([0*d, -4*d, 0.5*d, -3*d, 0*d, -3*d]);
+  drawTriangle([1*d, -4*d, 1*d, -3*d, 0.5*d, -3*d]);
+  gl.uniform4f(u_FragColor, 0.5, 0.5, 0.5, 1.0);
+  drawTriangle([0*d, -4*d, 1*d, -4*d, 0.5*d, -3*d]);
+  gl.uniform4f(u_FragColor, 0.8, 0.1, 0.1, 1.0);
+  drawTriangle([-1*d, -4*d, 0.5*d, -4.5*d, 0.5*d, -4*d]);
+  drawTriangle([0.5*d, -4.5*d, 2*d, -4*d, 0.5*d, -4*d]);
+
+
+  
 }
 
 function main() {
@@ -177,4 +345,6 @@ function main() {
 
   canvas.onmousedown = handleOnClick;
   canvas.onmousemove = handleOnClick;
+  document.addEventListener('keydown', handleOnKeyDown);
+  document.addEventListener('keyup', handleOnKeyUp);
 }

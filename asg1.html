@@ -19,14 +19,24 @@
       <button type="button" id="triangleButton" value="triangle">Triangles</button>
       <button type="button" id="circleButton" value="circle">Circles</button>
 
+    <p>Shape Color:</p>
     <p> Red
       <input type="range" min="0" max="100" value="100" class="slider" id="redSlide">
     <p> Green
       <input type="range" min="0" max="100" value="100" class="slider" id="greenSlide">
     <p> Blue
       <input type="range" min="0" max="100" value="100" class="slider" id="blueSlide">
-    <p> Shape Size
+
+    <p> Shape Size:
       <input type="range" min="0" max="40" value="0" class="slider" id="sizeSlide">
+        (Circles) Segment Count:
+      <input type="range" min="6" max="20" value="0" class="slider" id="segmentSlide">
+
+    <p><button type="button" id="pictureButton" value="picture">Draw Picture</button>
+
+    <p> Hold down shift and WASD for etch-a-sketch! Sketch Speed:
+      <input type="range" min="1" max="10" value="0" class="slider" id="sketchSpeed">     
+
 
     <script src="lib/webgl-utils.js"></script>
     <script src="lib/cuon-utils.js"></script>
